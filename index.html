@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <title>Mini HTML Apps</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #ecf0f1;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #0984e3;
+      color: white;
+      padding: 10px 16px;
+    }
+
+    .menu-btn {
+      font-size: 24px;
+      cursor: pointer;
+    }
+
+    .menu {
+      display: none;
+      flex-direction: column;
+      background: #dfe6e9;
+      padding: 10px;
+      border-bottom: 1px solid #ccc;
+    }
+
+    .menu.show {
+      display: flex;
+    }
+
+    .menu button {
+      padding: 10px;
+      margin: 5px 0;
+      border: none;
+      border-radius: 8px;
+      background: #00b894;
+      color: white;
+      font-weight: bold;
+    }
+
+    h2 {
+      text-align: center;
+      color: #2d3436;
+      margin: 1rem 0 0.5rem;
+    }
+
+    .toolbar input {
+      padding: 10px;
+      width: 100%;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      margin: 10px 0;
+    }
+
+    .app-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+      gap: 15px;
+      padding: 1rem;
+    }
+
+    .app {
+      background: #fff;
+      border-radius: 16px;
+      padding: 10px;
+      text-align: center;
+      box-shadow: 2px 2px 6px rgba(0,0,0,0.1);
+      position: relative;
+    }
+
+    .app span {
+      font-size: 0.8rem;
+      display: block;
+      margin-top: 5px;
+    }
+
+    .delete-btn {
+      display: none;
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      background: red;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      font-size: 12px;
+    }
+
+    .edit-mode .delete-btn {
+      display: block;
+    }
+
+    #editorSection {
+      display: none;
+      padding: 1rem;
+    }
+
+    textarea {
+      width: 100%;
+      height: 120px;
+      margin-bottom: 10px;
+      padding: 10px;
+      font-family: monospace;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+
+    .save-btn {
+      padding: 10px;
+      width: 100%;
+      border-radius: 8px;
+      background-color: #00b894;
+      color: white;
+      border: none;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h3>📱 Mini Apps</h3>
+  <div class="menu-btn" onclick="toggleMenu()">☰</div>
+</header>
+
+<div class="menu" id="menu">
+  <div class="toolbar">
+    <input type="text" id="appName" placeholder="অ্যাপের নাম লিখুন">
+    <button onclick="createApp()">➕ অ্যাপ তৈরি করুন</button>
+    <button onclick="toggleEditMode()">✏️ এডিট মোড</button>
+  </div>
+</div>
+
+<h2>আপনার অ্যাপস</h2>
+<div class="app-grid" id="appList"></div>
+
+<div id="editorSection">
+  <h3 id="editorTitle"></h3>
+  <textarea id="htmlInput" placeholder="HTML কোড লিখুন"></textarea>
+  <textarea id="cssInput" placeholder="CSS কোড লিখুন"></textarea>
+  <textarea id="jsInput" placeholder="JavaScript কোড লিখুন"></textarea>
+  <button class="save-btn" onclick="saveCode()">💾 সেভ করুন</button>
+</div>
+
+<script>
+  let apps = JSON.parse(localStorage.getItem('apps') || '{}');
+  let currentApp = '';
+  let editMode = false;
+
+  function toggleMenu() {
+    const menu = document.getElementById('menu');
+    menu.classList.toggle('show');
+  }
+
+  function renderApps() {
+    const container = document.getElementById('appList');
+    container.innerHTML = '';
+    for (let name in apps) {
+      const div = document.createElement('div');
+      div.className = 'app';
+      if (editMode) div.classList.add('edit-mode');
+      div.innerHTML = `
+        <button class="delete-btn" onclick="event.stopPropagation(); deleteApp('${name}')">×</button>
+        📦
+        <span>${name}</span>
+      `;
+      div.onclick = () => openApp(name);
+      container.appendChild(div);
+    }
+  }
+
+  function createApp() {
+    const name = document.getElementById('appName').value.trim();
+    if (!name) {
+      alert("অ্যাপের নাম লিখুন");
+      return;
+    }
+    if (apps[name]) {
+      alert("এই নামে একটি অ্যাপ আগে থেকেই আছে");
+      return;
+    }
+    apps[name] = { html: '', css: '', js: '' };
+    localStorage.setItem('apps', JSON.stringify(apps));
+    document.getElementById('appName').value = '';
+    openEditor(name);
+    toggleMenu();
+  }
+
+  function openEditor(name) {
+    currentApp = name;
+    const app = apps[name];
+    document.getElementById('editorTitle').innerText = `✍️ ${name}`;
+    document.getElementById('htmlInput').value = app.html;
+    document.getElementById('cssInput').value = app.css;
+    document.getElementById('jsInput').value = app.js;
+    document.getElementById('editorSection').style.display = 'block';
+    document.getElementById('appList').style.display = 'none';
+  }
+
+  function saveCode() {
+    apps[currentApp] = {
+      html: document.getElementById('htmlInput').value,
+      css: document.getElementById('cssInput').value,
+      js: document.getElementById('jsInput').value
+    };
+    localStorage.setItem('apps', JSON.stringify(apps));
+    document.getElementById('editorSection').style.display = 'none';
+    document.getElementById('appList').style.display = 'grid';
+    renderApps();
+  }
+
+  function openApp(name) {
+    const { html, css, js } = apps[name];
+    const fullCode = `
+      <html>
+      <head><style>${css}</style></head>
+      <body>
+      ${html}
+      <script>${js}<\/script>
+      </body>
+      </html>
+    `;
+    const win = window.open();
+    win.document.write(fullCode);
+    win.document.close();
+  }
+
+  function deleteApp(name) {
+    if (confirm(`${name} মুছে ফেলতে চান?`)) {
+      delete apps[name];
+      localStorage.setItem('apps', JSON.stringify(apps));
+      renderApps();
+    }
+  }
+
+  function toggleEditMode() {
+    editMode = !editMode;
+    renderApps();
+    toggleMenu();
+  }
+
+  renderApps();
+</script>
+
+</body>
+</html>
